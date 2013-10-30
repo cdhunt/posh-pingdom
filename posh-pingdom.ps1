@@ -406,7 +406,7 @@ function New-PingdomCheck
 		
 		# Contact identifiers. For example contactids=154325,465231,765871
 		[Parameter(Position=6)]
-		[string[]]$ContactIds,
+		[int[]]$ContactIds,
 
 		# Send alerts as email
 		[Parameter()]
@@ -513,6 +513,10 @@ function New-PingdomCheck
             {
                 $queryParams += , "$keyString={0}" -f (ConvertTo-UnixTimestamp $PSBoundParameters[$key])
             }
+			elseif ($PSBoundParameters[$key].GetType().BaseType.Name -eq "Array")
+			{
+				$queryParams += , "$keyString={0}" -f ($PSBoundParameters[$key] -join ',')
+			}
             else
             {
                 $queryParams += , "$keyString={0}" -f $PSBoundParameters[$key]
@@ -608,7 +612,7 @@ function Set-PingdomCheck
 		
 		# Contact identifiers. For example contactids=154325,465231,765871
 		[Parameter(Position=7)]
-		[string[]]$ContactIds,
+		[int[]]$ContactIds,
 
 		# Send alerts as email
 		[Parameter()]
@@ -713,6 +717,88 @@ function Set-PingdomCheck
             {
                 $queryParams += , "$keyString={0}" -f (ConvertTo-UnixTimestamp $PSBoundParameters[$key])
             }
+			elseif ($PSBoundParameters[$key].GetType().BaseType.Name -eq "Array")
+			{
+				$queryParams += , "$keyString={0}" -f ($PSBoundParameters[$key] -join ',')
+			}
+            else
+            {
+                $queryParams += , "$keyString={0}" -f $PSBoundParameters[$key]
+            }
+        }
+    }
+
+    $urlstring = 'https://api.pingdom.com/api/{0}/checks' -f $current_api_version
+    $params = @{Credential=$Credential
+			APIKey=$APIKey
+			API=$urlstring
+			Method="Post"}
+
+    if ($queryParams.Count -gt 0)
+	{
+		$querystring = $queryParams -join '&'
+		$params.Add('Query', $querystring)
+	}
+
+	Send-Request @params
+}
+
+<#
+.Synopsis
+   Pause or change resolution for multiple checks in one bulk call.
+#>
+function Set-PingdomBulkCheck
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param
+    (
+        # Pingdom Account Username and Password
+        [Parameter(Mandatory=$true, Position=0)]
+		[PSCredential]$Credential,
+
+        # Pingdom API Key
+		[Parameter(Mandatory=$true, Position=1)]
+        [string]$APIKey,
+
+		# Check name
+		[Parameter(Position=2)]
+		[int[]]$CheckIds,
+
+		# Paused
+		[Parameter()]
+		[switch]$Paused,
+
+		# Check resolution
+		[ValidateSet(1, 5, 15, 30, 60)]
+		[Parameter(Position=3)]
+		[int]$Resolution
+    )
+
+   [string[]]$queryParams = @()
+
+    foreach ($key in $PSBoundParameters.Keys.GetEnumerator())
+    {
+        if ($AVAILABLE_PARAMS -contains $key)
+        {
+            $keyString = [string]::Empty
+
+            # Some Pingdom parameters are reserved in Posh
+            switch ($key.ToString())
+            {
+                'Hostname' {$keyString = "host"}
+                'CheckName' {$keyString = "name"}
+                Default {$keyString = $_.ToLower()}
+            }
+
+            if ($PSBoundParameters[$key].GetType().Name -eq 'DateTime')
+            {
+                $queryParams += , "$keyString={0}" -f (ConvertTo-UnixTimestamp $PSBoundParameters[$key])
+            }
+			elseif ($PSBoundParameters[$key].GetType().BaseType.Name -eq "Array")
+			{
+				$queryParams += , "$keyString={0}" -f ($PSBoundParameters[$key] -join ',')
+			}
             else
             {
                 $queryParams += , "$keyString={0}" -f $PSBoundParameters[$key]
