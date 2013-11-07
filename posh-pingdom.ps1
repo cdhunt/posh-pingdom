@@ -277,7 +277,7 @@ function Get-PingdomCheck
 
         # Pingdom API Key
 		[Parameter(Mandatory=$true, Position=1)]
-        [string]$APIKey,
+        [string]$ApiKey,
 
 		# Limits the number of returned results to the specified quantity.
 		[Parameter(Position=3)]
@@ -461,16 +461,20 @@ function New-PingdomCheck
 		[Parameter(ParameterSetName="smtp", Position=10)]
 		[string]$Auth,
 
-		# Target site should NOT contain this string. If shouldcontain is also set, this parameter is not allowed.
+		# Target site should contain this string
 		[Parameter(ParameterSetName="http", Position=13)]
+		[string]$ShouldContain,
+
+		# Target site should NOT contain this string. If shouldcontain is also set, this parameter is not allowed.
+		[Parameter(ParameterSetName="http", Position=14)]
 		[string]$ShouldNotContain,
 		
 		# Data that should be posted to the web page, for example submission data for a sign-up or login form. The data needs to be formatted in the same way as a web browser would send it to the web server
-		[Parameter(ParameterSetName="http", Position=14)]
+		[Parameter(ParameterSetName="http", Position=15)]
 		[string]$PostData,
 
 		# Data that should be posted to the web page, for example submission data for a sign-up or login form. The data needs to be formatted in the same way as a web browser would send it to the web server
-		[Parameter(ParameterSetName="http", Position=15)]
+		[Parameter(ParameterSetName="http", Position=16)]
 		[string[]]$RequestHeader,
 		
 		# String to send
@@ -493,6 +497,30 @@ function New-PingdomCheck
 
    [string[]]$queryParams = @()
 
+	if ($HttpCheck)
+	{
+		$queryParams += "type=http"
+	}
+
+	if ($PingCheck)
+	{
+		$queryParams += "type=ping"
+	}
+
+	if ($TcpCheck)
+	{
+		$queryParams += "type=tcp"
+	}
+
+	if ($DnsCheck)
+	{
+		$queryParams += "type=tcp"
+	}
+	if ($SmtpCheck)
+	{
+		$queryParams += "type=dns"
+	}
+
     foreach ($key in $PSBoundParameters.Keys.GetEnumerator())
     {
         if ($AVAILABLE_PARAMS -contains $key)
@@ -506,8 +534,6 @@ function New-PingdomCheck
                 'CheckName' {$keyString = "name"}
                 Default {$keyString = $_.ToLower()}
             }
-
-        
             
             if ($PSBoundParameters[$key].GetType().Name -eq 'DateTime')
             {
@@ -532,6 +558,7 @@ function New-PingdomCheck
 
     if ($queryParams.Count -gt 0)
 	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
 		$querystring = $queryParams -join '&'
 		$params.Add('Query', $querystring)
 	}
@@ -839,8 +866,7 @@ function Send-Request
 
 	if ($Query)
 	{
-		$uriString += "?"
-        $uriString += [Web.HttpUtility]::HtmlEncode($Query)
+		$uriString += "?$Query"
 	}
 
 	Invoke-RestMethod  -Uri $uriString -Credential $Credential -Method $Method -Headers @{"App-Key"=$APIKey; "Accept-Encoding"="gzip"}
