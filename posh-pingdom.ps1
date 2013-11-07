@@ -95,8 +95,9 @@ function Get-PingdomActions
 				Method="Get"
 				}
 	
-	if ($queryParams.Count > 0)
+    if ($queryParams.Count -gt 0)
 	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
 		$querystring = $queryParams -join '&'
 		$params.Add('Query', $querystring)
 	}
@@ -170,8 +171,9 @@ function Get-PingdomAnalysis
 				Method="Get"
 				}
 	
-	if ($queryParams.Count -gt 0)
+    if ($queryParams.Count -gt 0)
 	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
 		$querystring = $queryParams -join '&'
 		$params.Add('Query', $querystring)
 	}
@@ -252,8 +254,9 @@ function Get-PingdomAnalysisRaw
 				Method="Get"
 				}
 	
-	if ($queryParams.Count -gt 0)
+    if ($queryParams.Count -gt 0)
 	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
 		$querystring = $queryParams -join '&'
 		$params.Add('Query', $querystring)
 	}
@@ -331,8 +334,9 @@ function Get-PingdomCheck
 				Method="Get"
 				}
 	
-	if ($queryParams.Count -gt 0)
+    if ($queryParams.Count -gt 0)
 	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
 		$querystring = $queryParams -join '&'
 		$params.Add('Query', $querystring)
 	}
@@ -694,16 +698,20 @@ function Set-PingdomCheck
 		[Parameter(ParameterSetName="smtp", Position=11)]
 		[string]$Auth,
 
-		# Target site should NOT contain this string. If shouldcontain is also set, this parameter is not allowed.
+		# Target site should contain this string
 		[Parameter(ParameterSetName="http", Position=14)]
+		[string]$ShouldContain,
+
+		# Target site should NOT contain this string. If shouldcontain is also set, this parameter is not allowed.
+		[Parameter(ParameterSetName="http", Position=15)]
 		[string]$ShouldNotContain,
 		
 		# Data that should be posted to the web page, for example submission data for a sign-up or login form. The data needs to be formatted in the same way as a web browser would send it to the web server
-		[Parameter(ParameterSetName="http", Position=15)]
+		[Parameter(ParameterSetName="http", Position=16)]
 		[string]$PostData,
 
 		# Data that should be posted to the web page, for example submission data for a sign-up or login form. The data needs to be formatted in the same way as a web browser would send it to the web server
-		[Parameter(ParameterSetName="http", Position=16)]
+		[Parameter(ParameterSetName="http", Position=17)]
 		[string[]]$RequestHeader,
 		
 		# String to send
@@ -725,6 +733,30 @@ function Set-PingdomCheck
     )
 
    [string[]]$queryParams = @()
+
+	if ($HttpCheck)
+	{
+		$queryParams += "type=http"
+	}
+
+	if ($PingCheck)
+	{
+		$queryParams += "type=ping"
+	}
+
+	if ($TcpCheck)
+	{
+		$queryParams += "type=tcp"
+	}
+
+	if ($DnsCheck)
+	{
+		$queryParams += "type=tcp"
+	}
+	if ($SmtpCheck)
+	{
+		$queryParams += "type=dns"
+	}
 
     foreach ($key in $PSBoundParameters.Keys.GetEnumerator())
     {
@@ -763,6 +795,7 @@ function Set-PingdomCheck
 
     if ($queryParams.Count -gt 0)
 	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
 		$querystring = $queryParams -join '&'
 		$params.Add('Query', $querystring)
 	}
@@ -841,6 +874,7 @@ function Set-PingdomBulkCheck
 
     if ($queryParams.Count -gt 0)
 	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
 		$querystring = $queryParams -join '&'
 		$params.Add('Query', $querystring)
 	}
