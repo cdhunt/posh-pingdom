@@ -5,8 +5,8 @@ $current_api_version = $DEFAULT_API_VERSION
 $AVAILABLE_PARAMS = @("CheckId", "Limit", "CheckName", "Hostname", "Paused", "Resolution", "ContactIds", "SendToEmail", "SendToSms",
                                     "SendToTwitter", "SendToIphone", "SendToAndroid", "SendNotificationWhenDown", "Offset", "AnalysisId",
                                     "NotifyAgainEvery", "NotifyWhenBackup", "Url", "Encryption", "Port", "Auth", "To", "From", "Status", 
-                                    "ShouldNotContain", "PostData", "RequestHeader", "StringToSend", "StringToExpect", "Via",
-                                    "EpectedIp", "NameServer")
+                                    "ShouldContain", "ShouldNotContain", "PostData", "RequestHeader", "StringToSend", "StringToExpect", 
+									"Via", "EpectedIp", "NameServer")
 
 <#
 .Synopsis
