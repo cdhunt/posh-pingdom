@@ -6,7 +6,8 @@ $AVAILABLE_PARAMS = @("CheckId", "Limit", "CheckName", "Hostname", "Paused", "Re
                                     "SendToTwitter", "SendToIphone", "SendToAndroid", "SendNotificationWhenDown", "Offset", "AnalysisId",
                                     "NotifyAgainEvery", "NotifyWhenBackup", "Url", "Encryption", "Port", "Auth", "To", "From", "Status", 
                                     "ShouldContain", "ShouldNotContain", "PostData", "RequestHeader", "StringToSend", "StringToExpect", 
-									"Via", "EpectedIp", "NameServer")
+									"Via", "EpectedIp", "NameServer", "ContactName", "Email", "CellPhone", "CountryCode", "CountryIso",
+									"DefaultSmsProvider", "DirectTwitter", "TwitterUser")
 
 <#
 .Synopsis
@@ -867,6 +868,165 @@ function Set-PingdomBulkCheck
     }
 
     $urlstring = 'https://api.pingdom.com/api/{0}/checks' -f $current_api_version
+    $params = @{Credential=$Credential
+			APIKey=$APIKey
+			API=$urlstring
+			Method="Post"}
+
+    if ($queryParams.Count -gt 0)
+	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
+		$querystring = $queryParams -join '&'
+		$params.Add('Query', $querystring)
+	}
+
+	Send-Request @params
+}
+
+<#
+.Synopsis
+   Returns a list of all contacts.
+#>
+function Get-PingdomContact
+{
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    Param
+    (
+        # Pingdom Account Username and Password
+        [Parameter(Mandatory=$true, Position=0)]
+		[PSCredential]$Credential,
+
+        # Pingdom API Key
+		[Parameter(Mandatory=$true, Position=1)]
+        [string]$ApiKey,
+
+		# Limits the number of returned results to the specified quantity.
+		[Parameter(Position=2)]
+		[int]$Limit,
+
+		# Offset for listing
+		[Parameter(Position=3)]
+		[int]$Offset
+    )
+
+	$urlstring = 'https://api.pingdom.com/api/{0}/contacts' -f $current_api_version
+
+	[string[]]$queryParams = @()
+
+	if ($PSBoundParameters["Limit"])
+	{
+		$queryParams += , "limit={0}" -f $Limit
+	}
+	if ($PSBoundParameters["Offset"])
+	{
+		$queryParams += , "offset={0}" -f $Offset
+	}
+		
+	$params = @{Credential=$Credential
+				APIKey=$APIKey
+				API=$urlstring
+				Method="Get"
+				}
+	
+    if ($queryParams.Count -gt 0)
+	{
+		$queryParams = $queryParams | Foreach { [Web.HttpUtility]::HtmlEncode($_) }
+		$querystring = $queryParams -join '&'
+		$params.Add('Query', $querystring)
+	}
+
+	Send-Request @params
+}
+
+<#
+.Synopsis
+   Create a new contact.
+.Link
+	https://www.pingdom.com/features/api/documentation/#MethodCreate+Contact
+#>
+function New-PingdomContact
+{
+    [CmdletBinding(DefaultParameterSetName="nocellphone")]
+    [OutputType([object[]])]
+    Param
+    (
+        # Pingdom Account Username and Password
+        [Parameter(Mandatory=$true, Position=0)]
+		[PSCredential]$Credential,
+
+        # Pingdom API Key
+		[Parameter(Mandatory=$true, Position=1)]
+        [string]$APIKey,
+
+		# Contact name
+		[Parameter(Mandatory=$true, Position=2)]
+		[string]$ContactName,
+
+		# Email
+		[Parameter(Position=3)]
+		[string]$Email,
+
+		# Cellphone number, without the country code part. In some countries you are supposed to exclude leading zeroes. (Requires countrycode and countryiso)
+		[Parameter(ParameterSetName="cellphone", Mandatory=$true, Position=4)]
+		[string]$Cellphone,
+
+		# Cellphone country code (Requires cellphone and countryiso)
+		[Parameter(ParameterSetName="cellphone", Mandatory=$true, Position=5)]
+		[string]$CountryCode,
+		
+		# Cellphone country ISO code. For example: US (USA), GB (Britain) or SE (Sweden) (Requires cellphone and countrycode)
+		[Parameter(ParameterSetName="cellphone", Mandatory=$true, Position=6)]
+		[string]$CountryIso,
+
+		# Default SMS provider (clickatell, bulksms, esendex, cellsynt)
+		[ValidateSet('clickatell', 'bulksms', 'esendex', 'cellsynt')]
+		[Parameter(ParameterSetName="cellphone", Position=7)]
+		[Parameter(ParameterSetName="nocellphone", Position=4)]
+		[switch]$DefaultSmsProvider,
+
+		# Send twitter messages as Direct Messages, default = $true
+		[Parameter(ParameterSetName="cellphone", Position=8)]
+		[Parameter(ParameterSetName="nocellphone", Position=5)]
+		[switch]$DirectTwitter,
+
+		# Twitter user
+		[Parameter(ParameterSetName="cellphone", Position=9)]
+		[Parameter(ParameterSetName="nocellphone", Position=6)]
+		[string]$TwitterUser
+    )
+
+   [string[]]$queryParams = @()
+
+    foreach ($key in $PSBoundParameters.Keys.GetEnumerator())
+    {
+        if ($AVAILABLE_PARAMS -contains $key)
+        {
+            $keyString = [string]::Empty
+
+            # Some Pingdom parameters are reserved in Posh
+            switch ($key.ToString())
+            {
+                'ContactName' {$keyString = "name"}
+                Default {$keyString = $_.ToLower()}
+            }
+            
+            if ($PSBoundParameters[$key].GetType().Name -eq 'DateTime')
+            {
+                $queryParams += , "$keyString={0}" -f (ConvertTo-UnixTimestamp $PSBoundParameters[$key])
+            }
+			elseif ($PSBoundParameters[$key].GetType().BaseType.Name -eq "Array")
+			{
+				$queryParams += , "$keyString={0}" -f ($PSBoundParameters[$key] -join ',')
+			}
+            else
+            {
+                $queryParams += , "$keyString={0}" -f $PSBoundParameters[$key]
+            }
+        }
+    }
+
+    $urlstring = 'https://api.pingdom.com/api/{0}/contacts' -f $current_api_version
     $params = @{Credential=$Credential
 			APIKey=$APIKey
 			API=$urlstring
